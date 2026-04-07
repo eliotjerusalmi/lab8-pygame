@@ -15,7 +15,7 @@ FPS = 60
 BACKGROUND_COLOR = (30, 30, 30)
 
 # Square settings
-NUM_SQUARES = 100
+NUM_SQUARES = 10
 SQUARE_SIZE = 30
 MAX_SPEED = 5
 
@@ -56,6 +56,35 @@ class Square:
     def draw(self, surface):
         pygame.draw.rect(surface, self.color, (self.x, self.y, self.size, self.size))
 
+    def handle_fleeing(squares):
+    
+        for i in range(len(squares)):
+            for j in range(i + 1, len(squares)):
+                s1 = squares[i]
+            s2 = squares[j]
+
+            dx = s1.x - s2.x
+            dy = s1.y - s2.y
+
+            # distance simple
+            if abs(dx) < 50 and abs(dy) < 50:
+
+                # IMPORTANT : éviter de changer direction tout le temps
+                if random.random() < 0.02:  # 2% de chance seulement
+
+                    if dx > 0:
+                        s1.dx = 2
+                        s2.dx = -2
+                    else:
+                        s1.dx = -2
+                        s2.dx = 2
+
+                    if dy > 0:
+                        s1.dy = 2
+                        s2.dy = -2
+                    else:
+                        s1.dy = -2
+                        s2.dy = 2
 
 def main():
     squares = [Square() for _ in range(NUM_SQUARES)]
