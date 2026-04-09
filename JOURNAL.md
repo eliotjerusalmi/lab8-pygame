@@ -44,6 +44,17 @@
 
 ### **New Interaction**
 - **Agent Version**: 2.2
+- **Date**: 09-04-2026
+- **User**: eliot.jerusalmi@epita.fr
+- **Prompt**: tu peux me donner des indices sur ce que je dois faire pour ameliorer ma fonction stp
+- **CoPilot Mode**: Agent
+- **CoPilot Model**: GPT-5.3-Codex
+- **Socratic Mode**: ON
+- **Changes Made**: Provided practical, non-code hints to improve the fleeing behavior quality.
+- **Context and Reasons for Changes**: Suggested improvements included using Euclidean distance for proximity checks, steering with normalized flee vectors instead of fixed velocity flips, adding cooldowns to avoid jitter, scaling flee force by proximity, clamping max speed, separating behavior and movement steps, and handling very close overlap to prevent vibration. The user requested guidance only, so recommendations were kept conceptual and implementation-ready without code lines.
+
+### **New Interaction**
+- **Agent Version**: 2.2
 - **Date**: 07-04-2026
 - **User**: eliot.jerusalmi@epita.fr
 - **Prompt**: can you analyse my fleeing function and tell me why it is not working whihout corecting the code
