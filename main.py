@@ -21,6 +21,8 @@ NUM_SQUARES = 20
 DIRECTION_CHANGE_INTERVAL = 4000  # milliseconds
 FLEE_DISTANCE = 120
 RANDOM_DIRECTION_STRENGTH = 0.35
+MIN_LIFESPAN_MS = 5000
+MAX_LIFESPAN_MS = 12000
 
 
 class Square:
@@ -39,9 +41,15 @@ class Square:
         # Smaller squares move faster than bigger ones
         self.speed = max(60, 220 - self.size * 2)
 
+        self.birth_time = pygame.time.get_ticks()
+        self.lifespan_ms = random.randint(MIN_LIFESPAN_MS, MAX_LIFESPAN_MS)
+
         self.vx = 0
         self.vy = 0
         self.set_random_direction()
+
+    def is_expired(self, current_time):
+        return current_time - self.birth_time >= self.lifespan_ms
 
     def set_random_direction(self):
         angle = random.uniform(0, 2 * math.pi)
@@ -157,6 +165,9 @@ def main():
 
         for square in squares:
             square.move(delta_time)
+
+        # Keep the same amount of squares by replacing expired ones.
+        squares = [square if not square.is_expired(current_time) else Square() for square in squares]
 
         SCREEN.fill(BACKGROUND_COLOR)
 
