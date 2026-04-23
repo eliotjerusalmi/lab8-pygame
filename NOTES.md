@@ -9,3 +9,7 @@ Add visual effects like trails.
 Introduce a scoring system or obstacles.
 Optimize collision detection.
 need to ba minimal distance before fleeing
+chasing function:
+it need to be based on size 
+i need to let a part of ramdomness it the game 
+i can use some part of my already existing code to help me build that function 

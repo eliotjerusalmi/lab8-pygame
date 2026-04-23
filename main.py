@@ -60,7 +60,7 @@ class Square:
         self.x += self.vx * delta_time
         self.y += self.vy * delta_time
 
-        # Bounce on window borders
+        
         if self.x <= 0:
             self.x = 0
             self.vx *= -1
@@ -132,6 +132,44 @@ class Square:
                     square.vy = final_y * square.speed
 
 
+def handle_chassing(squares):
+    for square in squares:
+        chase_x = 0
+        chase_y = 0
+
+        sx, sy = square.center()
+
+        for other in squares:
+            if square is other:
+                continue
+
+            
+            if square.size > other.size:
+                ox, oy = other.center()
+
+                dx = ox - sx
+                dy = oy - sy
+                distance = math.hypot(dx, dy)
+
+                if distance > 0:
+            
+                    strength = 1 / distance
+                    chase_x += (dx / distance) * strength
+                    chase_y += (dy / distance) * strength
+
+        chase_length = math.hypot(chase_x, chase_y)
+        if chase_length > 0:
+            chase_x /= chase_length
+            chase_y /= chase_length
+
+            
+            current_length = math.hypot(square.vx, square.vy)
+            if current_length > 0:
+                current_x = square.vx / current_length
+                current_y = square.vy / current_length
+            else:
+                current_x, current_y = 0, 0
+
 def draw_fps(surface, clock, font):
     fps = clock.get_fps()
     fps_text = font.render(f"FPS: {fps:.1f}", True, FPS_COLOR)
@@ -146,7 +184,6 @@ def main():
     last_direction_change = pygame.time.get_ticks()
 
     while running:
-        # delta_time in seconds
         delta_time = CLOCK.tick(FPS) / 1000.0
 
         for event in pygame.event.get():
@@ -161,6 +198,7 @@ def main():
                 square.set_random_direction()
             last_direction_change = current_time
 
+        handle_chassing(squares)
         Square.handle_fleeing(squares)
 
         for square in squares:
