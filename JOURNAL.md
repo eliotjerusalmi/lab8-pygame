@@ -123,3 +123,18 @@ or Changes**: The repository already contains the journal logger configuration, 
 - **Hook Version**: 1.02
 - **Date**: 27-04-2026 11:04
 - **Prompt**: generate the architecture document for this project
+### **New Interaction**
+- **Agent Version**: 2.3
+- **Date**: 27-04-2026 11:07
+- **User**: eliot.jerusalmi@epita.fr
+- **Prompt**: generate the architecture document for this project
+- **CoPilot Mode**: Agent
+- **CoPilot Model**: GPT-5.3-Codex
+- **Socratic Mode**: ON
+- **Changes Made**: Created architecture documentation in both Markdown and static HTML under docs, including dependency, runtime flow, function call, and sequence diagrams.
+- **Context and Reasons for Changes**: The user requested architecture documentation for the project; diagrams were derived directly from main.py to reflect actual control flow and function relationships without inventing components.
+
+### **New Interaction**
+- **Hook Version**: 1.02
+- **Date**: 27-04-2026 11:22
+- **Prompt**: generate the flash quizz for this project
