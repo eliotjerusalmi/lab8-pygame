@@ -1,1 +1,1 @@
- 
+ the same size rebirth function was already in my mine.py 
