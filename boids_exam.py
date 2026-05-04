@@ -34,7 +34,7 @@ class Config:
     COHESION_STEER_STRENGTH: float = 5  # How strongly boids steer toward center of mass of neighbors (vector-based)
 
     # Wall warp or bounce
-    WALL_BEHAVIOR: str = "bounce"  # "wrap" or "bounce"
+    WALL_BEHAVIOR: str = "wrap"  # "wrap" or "bounce"
 
 
 
@@ -59,8 +59,15 @@ class Boid:
     # Screen wrapping: if a boid goes off one edge of the screen, 
     # it should reappear on the opposite edge
     def _screen_wrap(self) -> None:
-        pass
-    
+     if self.x < 0:
+        self.x = config.WIDTH
+     elif self.x > config.WIDTH:
+        self.x = 0
+
+        if self.y < 0:
+                self.y = config.HEIGHT
+        elif self.y > config.HEIGHT:
+            self.y = 0
     # Default wall behavior is bounce: if a boid hits the edge of the screen, 
     # it should bounce back in the opposite direction
     def _screen_bounce(self) -> None:

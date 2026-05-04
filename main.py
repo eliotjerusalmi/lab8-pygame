@@ -7,7 +7,7 @@ pygame.init()
 # Window settings
 WIDTH, HEIGHT = 800, 600
 SCREEN = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Lab - Moving Squares (Trails)")
+pygame.display.set_caption("Lab - Animated Growth")
 
 CLOCK = pygame.time.Clock()
 FPS = 60
@@ -16,18 +16,21 @@ FPS = 60
 BACKGROUND_COLOR = (30, 30, 30)
 FPS_COLOR = (255, 255, 255)
 
-# Square settings
+# Settings
 DIRECTION_CHANGE_INTERVAL = 4000
 FLEE_DISTANCE = 15
 RANDOM_DIRECTION_STRENGTH = 0.35
 MIN_LIFESPAN_MS = 5000
 MAX_LIFESPAN_MS = 12000
 
-# Eating++ settings
+# Eating++
 GROWTH_FACTOR = 0.4
 MAX_SIZE = 120
 
-# Trails settings
+# Animated growth
+GROWTH_SPEED = 500  # ms
+
+# Trails
 TRAILS_LENGTH = 30
 
 
@@ -35,6 +38,9 @@ class Square:
     def __init__(self, size):
         self.original_size = size
         self.size = size
+
+        self.target_size = size
+        self.growth_start_time = None
 
         self.x = random.uniform(0, WIDTH - self.size)
         self.y = random.uniform(0, HEIGHT - self.size)
@@ -59,15 +65,25 @@ class Square:
     def update_speed(self):
         self.speed = max(40, 220 - self.size * 2)
 
-    def grow(self, prey_size):
+    def start_growth(self, prey_size):
         growth_amount = prey_size * GROWTH_FACTOR
-        self.size = min(MAX_SIZE, self.size + growth_amount)
-        self.update_speed()
+        self.target_size = min(MAX_SIZE, self.size + growth_amount)
+        self.growth_start_time = pygame.time.get_ticks()
 
-        direction_x, direction_y = normalize_vector(self.vx, self.vy)
-        if direction_x != 0 or direction_y != 0:
-            self.vx = direction_x * self.speed
-            self.vy = direction_y * self.speed
+    def update_growth(self, current_time):
+        if self.growth_start_time is None:
+            return
+
+        elapsed = current_time - self.growth_start_time
+
+        if elapsed >= GROWTH_SPEED:
+            self.size = self.target_size
+            self.growth_start_time = None
+        else:
+            t = elapsed / GROWTH_SPEED
+            self.size = self.size + (self.target_size - self.size) * t
+
+        self.update_speed()
 
     def get_rect(self):
         return pygame.Rect(int(self.x), int(self.y), int(self.size), int(self.size))
@@ -111,17 +127,8 @@ class Square:
             self.trail.pop(0)
 
     def draw_trail(self, surface):
-        if len(self.trail) < 2:
-            return
-
         for i in range(1, len(self.trail)):
-            pygame.draw.line(
-                surface,
-                self.color,
-                self.trail[i - 1],
-                self.trail[i],
-                2
-            )
+            pygame.draw.line(surface, self.color, self.trail[i - 1], self.trail[i], 2)
 
     def draw(self, surface):
         pygame.draw.rect(surface, self.color, self.get_rect())
@@ -143,7 +150,6 @@ class Square:
 
                 if square.size < other.size:
                     ox, oy = other.center()
-
                     dx = sx - ox
                     dy = sy - oy
                     distance = vector_length(dx, dy)
@@ -151,25 +157,20 @@ class Square:
                     if 0 < distance < FLEE_DISTANCE:
                         strength = (FLEE_DISTANCE - distance) / FLEE_DISTANCE
                         away_x, away_y = normalize_vector(dx, dy)
-
                         flee_x += away_x * strength
                         flee_y += away_y * strength
 
             if vector_length(flee_x, flee_y) > 0:
                 flee_x, flee_y = normalize_vector(flee_x, flee_y)
 
-                random_angle = random.uniform(0, 2 * math.pi)
-                rand_x = math.cos(random_angle)
-                rand_y = math.sin(random_angle)
+                rand_angle = random.uniform(0, 2 * math.pi)
+                final_x = flee_x + math.cos(rand_angle) * RANDOM_DIRECTION_STRENGTH
+                final_y = flee_y + math.sin(rand_angle) * RANDOM_DIRECTION_STRENGTH
 
-                final_x = flee_x + rand_x * RANDOM_DIRECTION_STRENGTH
-                final_y = flee_y + rand_y * RANDOM_DIRECTION_STRENGTH
+                final_x, final_y = normalize_vector(final_x, final_y)
 
-                if vector_length(final_x, final_y) > 0:
-                    final_x, final_y = normalize_vector(final_x, final_y)
-
-                    square.vx = final_x * square.speed
-                    square.vy = final_y * square.speed
+                square.vx = final_x * square.speed
+                square.vy = final_y * square.speed
 
 
 def check_collision(a, b):
@@ -182,9 +183,7 @@ def vector_length(x, y):
 
 def normalize_vector(x, y):
     length = vector_length(x, y)
-    if length == 0:
-        return 0, 0
-    return x / length, y / length
+    return (0, 0) if length == 0 else (x / length, y / length)
 
 
 def handle_chasing(squares):
@@ -200,70 +199,52 @@ def handle_chasing(squares):
 
             if square.size > other.size:
                 ox, oy = other.center()
-
                 dx = ox - sx
                 dy = oy - sy
-                distance = vector_length(dx, dy)
+                dist = vector_length(dx, dy)
 
-                if distance > 0:
-                    strength = 1 / distance
-                    toward_x, toward_y = normalize_vector(dx, dy)
-
-                    chase_x += toward_x * strength
-                    chase_y += toward_y * strength
+                if dist > 0:
+                    strength = 1 / dist
+                    tx, ty = normalize_vector(dx, dy)
+                    chase_x += tx * strength
+                    chase_y += ty * strength
 
         if vector_length(chase_x, chase_y) > 0:
             chase_x, chase_y = normalize_vector(chase_x, chase_y)
-
             square.vx = chase_x * square.speed
             square.vy = chase_y * square.speed
 
 
 def create_mixed_squares():
-    squares = []
-
-    for _ in range(5):
-        squares.append(Square(25))
-
-    for _ in range(10):
-        squares.append(Square(10))
-
-    for _ in range(30):
-        squares.append(Square(4))
-
-    return squares
+    return (
+        [Square(25) for _ in range(5)] +
+        [Square(10) for _ in range(10)] +
+        [Square(4) for _ in range(30)]
+    )
 
 
 def handle_eating(squares):
-    new_squares = squares.copy()
-    eaten_indexes = set()
+    new = squares.copy()
+    eaten = set()
 
     for i in range(len(squares)):
         for j in range(i + 1, len(squares)):
-            if i in eaten_indexes or j in eaten_indexes:
+            if i in eaten or j in eaten:
                 continue
 
-            a = squares[i]
-            b = squares[j]
+            a, b = squares[i], squares[j]
 
             if check_collision(a, b):
                 if a.size > b.size:
-                    a.grow(b.size)
-                    new_squares[j] = Square(b.original_size)
-                    eaten_indexes.add(j)
-
+                    a.start_growth(b.size)
+                    new[j] = Square(b.original_size)
+                    eaten.add(j)
                 elif b.size > a.size:
-                    b.grow(a.size)
-                    new_squares[i] = Square(a.original_size)
-                    eaten_indexes.add(i)
+                    b.start_growth(a.size)
+                    new[i] = Square(a.original_size)
+                    eaten.add(i)
 
-    return new_squares
-
-
-def draw_fps(surface, clock, font):
-    fps = clock.get_fps()
-    fps_text = font.render(f"FPS: {fps:.1f}", True, FPS_COLOR)
-    surface.blit(fps_text, (10, 10))
+    return new
 
 
 def main():
@@ -271,48 +252,45 @@ def main():
     font = pygame.font.SysFont("Arial", 18)
 
     running = True
-    last_direction_change = pygame.time.get_ticks()
+    last_dir_change = pygame.time.get_ticks()
 
     while running:
         delta_time = CLOCK.tick(FPS) / 1000.0
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+        for e in pygame.event.get():
+            if e.type == pygame.QUIT:
                 running = False
 
-        current_time = pygame.time.get_ticks()
+        now = pygame.time.get_ticks()
 
-        if current_time - last_direction_change >= DIRECTION_CHANGE_INTERVAL:
-            for square in squares:
-                square.set_random_direction()
-            last_direction_change = current_time
+        if now - last_dir_change >= DIRECTION_CHANGE_INTERVAL:
+            for s in squares:
+                s.set_random_direction()
+            last_dir_change = now
 
         handle_chasing(squares)
         Square.handle_fleeing(squares)
 
-        for square in squares:
-            square.move(delta_time)
+        for s in squares:
+            s.move(delta_time)
+            s.update_growth(now)
 
         squares = handle_eating(squares)
 
-        updated = []
-        for square in squares:
-            if square.is_expired(current_time):
-                updated.append(Square(square.original_size))
-            else:
-                updated.append(square)
-
-        squares = updated
+        squares = [
+            Square(s.original_size) if s.is_expired(now) else s
+            for s in squares
+        ]
 
         SCREEN.fill(BACKGROUND_COLOR)
 
-        for square in squares:
-            square.draw_trail(SCREEN)
+        for s in squares:
+            s.draw_trail(SCREEN)
+        for s in squares:
+            s.draw(SCREEN)
 
-        for square in squares:
-            square.draw(SCREEN)
-
-        draw_fps(SCREEN, CLOCK, font)
+        fps_text = font.render(f"FPS: {CLOCK.get_fps():.1f}", True, FPS_COLOR)
+        SCREEN.blit(fps_text, (10, 10))
 
         pygame.display.flip()
 
