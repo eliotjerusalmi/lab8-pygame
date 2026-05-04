@@ -7,7 +7,7 @@ pygame.init()
 # Window settings
 WIDTH, HEIGHT = 800, 600
 SCREEN = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Lab - Moving Squares (Eating)")
+pygame.display.set_caption("Lab - Moving Squares (Eating++)")
 
 CLOCK = pygame.time.Clock()
 FPS = 60
@@ -18,14 +18,19 @@ FPS_COLOR = (255, 255, 255)
 
 # Square settings
 DIRECTION_CHANGE_INTERVAL = 4000
-FLEE_DISTANCE = 15 
+FLEE_DISTANCE = 15
 RANDOM_DIRECTION_STRENGTH = 0.35
 MIN_LIFESPAN_MS = 5000
 MAX_LIFESPAN_MS = 12000
 
+# Eating++ settings
+GROWTH_FACTOR = 0.4
+MAX_SIZE = 120
+
 
 class Square:
     def __init__(self, size):
+        self.original_size = size
         self.size = size
 
         self.x = random.uniform(0, WIDTH - self.size)
@@ -37,7 +42,7 @@ class Square:
             random.randint(50, 255),
         )
 
-        self.speed = max(60, 220 - self.size * 2)
+        self.update_speed()
 
         self.birth_time = pygame.time.get_ticks()
         self.lifespan_ms = random.randint(MIN_LIFESPAN_MS, MAX_LIFESPAN_MS)
@@ -46,8 +51,23 @@ class Square:
         self.vy = 0
         self.set_random_direction()
 
+    def update_speed(self):
+        # Bigger squares become slower as they grow
+        self.speed = max(40, 220 - self.size * 2)
+
+    def grow(self, prey_size):
+        growth_amount = prey_size * GROWTH_FACTOR
+        self.size = min(MAX_SIZE, self.size + growth_amount)
+        self.update_speed()
+
+        # Keep current direction but update speed
+        direction_x, direction_y = normalize_vector(self.vx, self.vy)
+        if direction_x != 0 or direction_y != 0:
+            self.vx = direction_x * self.speed
+            self.vy = direction_y * self.speed
+
     def get_rect(self):
-        return pygame.Rect(int(self.x), int(self.y), self.size, self.size)
+        return pygame.Rect(int(self.x), int(self.y), int(self.size), int(self.size))
 
     def is_expired(self, current_time):
         return current_time - self.birth_time >= self.lifespan_ms
@@ -97,7 +117,6 @@ class Square:
                     dy = sy - oy
                     distance = vector_length(dx, dy)
 
-                    
                     if 0 < distance < FLEE_DISTANCE:
                         strength = (FLEE_DISTANCE - distance) / FLEE_DISTANCE
                         away_x, away_y = normalize_vector(dx, dy)
@@ -122,7 +141,6 @@ class Square:
                     square.vy = final_y * square.speed
 
 
-# Collision
 def check_collision(a, b):
     return a.get_rect().colliderect(b.get_rect())
 
@@ -185,6 +203,32 @@ def create_mixed_squares():
     return squares
 
 
+def handle_eating(squares):
+    new_squares = squares.copy()
+    eaten_indexes = set()
+
+    for i in range(len(squares)):
+        for j in range(i + 1, len(squares)):
+            if i in eaten_indexes or j in eaten_indexes:
+                continue
+
+            a = squares[i]
+            b = squares[j]
+
+            if check_collision(a, b):
+                if a.size > b.size:
+                    a.grow(b.size)
+                    new_squares[j] = Square(b.original_size)
+                    eaten_indexes.add(j)
+
+                elif b.size > a.size:
+                    b.grow(a.size)
+                    new_squares[i] = Square(a.original_size)
+                    eaten_indexes.add(i)
+
+    return new_squares
+
+
 def draw_fps(surface, clock, font):
     fps = clock.get_fps()
     fps_text = font.render(f"FPS: {fps:.1f}", True, FPS_COLOR)
@@ -218,27 +262,12 @@ def main():
         for square in squares:
             square.move(delta_time)
 
-        # Eating system
-        new_squares = squares.copy()
+        squares = handle_eating(squares)
 
-        for i in range(len(squares)):
-            for j in range(i + 1, len(squares)):
-                a = squares[i]
-                b = squares[j]
-
-                if check_collision(a, b):
-                    if a.size > b.size:
-                        new_squares[j] = Square(b.size)
-                    elif b.size > a.size:
-                        new_squares[i] = Square(a.size)
-
-        squares = new_squares
-
-        # Respawn même taille (temps)
         updated = []
         for square in squares:
             if square.is_expired(current_time):
-                updated.append(Square(square.size))
+                updated.append(Square(square.original_size))
             else:
                 updated.append(square)
 
