@@ -17,8 +17,6 @@ BACKGROUND_COLOR = (30, 30, 30)
 FPS_COLOR = (255, 255, 255)
 
 # Square settings
-NUM_SQUARES = 20
-# Milliseconds between random direction refreshes.
 DIRECTION_CHANGE_INTERVAL = 4000
 FLEE_DISTANCE = 120
 RANDOM_DIRECTION_STRENGTH = 0.35
@@ -27,8 +25,8 @@ MAX_LIFESPAN_MS = 12000
 
 
 class Square:
-    def __init__(self):
-        self.size = random.randint(20, 80)
+    def __init__(self, size):
+        self.size = size
 
         self.x = random.uniform(0, WIDTH - self.size)
         self.y = random.uniform(0, HEIGHT - self.size)
@@ -61,7 +59,6 @@ class Square:
         self.x += self.vx * delta_time
         self.y += self.vy * delta_time
 
-        # Bounce by clamping the position and flipping the matching velocity.
         if self.x <= 0:
             self.x = 0
             self.vx *= -1
@@ -84,7 +81,7 @@ class Square:
         )
 
     def center(self):
-        return (self.x + self.size / 2, self.y + self.size / 2)
+        return self.x + self.size / 2, self.y + self.size / 2
 
     @staticmethod
     def handle_fleeing(squares):
@@ -98,7 +95,6 @@ class Square:
                 if square is other:
                     continue
 
-                # Only smaller squares flee bigger ones
                 if square.size < other.size:
                     ox, oy = other.center()
 
@@ -109,11 +105,12 @@ class Square:
                     if 0 < distance < FLEE_DISTANCE:
                         strength = (FLEE_DISTANCE - distance) / FLEE_DISTANCE
                         away_x, away_y = normalize_vector(dx, dy)
+
                         flee_x += away_x * strength
                         flee_y += away_y * strength
 
-            # If there is something to flee from, combine fleeing with randomness
             flee_length = vector_length(flee_x, flee_y)
+
             if flee_length > 0:
                 flee_x, flee_y = normalize_vector(flee_x, flee_y)
 
@@ -125,12 +122,13 @@ class Square:
                 final_y = flee_y + rand_y * RANDOM_DIRECTION_STRENGTH
 
                 final_length = vector_length(final_x, final_y)
+
                 if final_length > 0:
                     final_x, final_y = normalize_vector(final_x, final_y)
 
-                    # Store the new escape direction in velocity so movement changes next.
                     square.vx = final_x * square.speed
                     square.vy = final_y * square.speed
+
 
 def vector_length(x, y):
     return math.hypot(x, y)
@@ -138,12 +136,13 @@ def vector_length(x, y):
 
 def normalize_vector(x, y):
     length = vector_length(x, y)
+
     if length == 0:
         return 0, 0
+
     return x / length, y / length
 
 
-# The chase function keeps the same idea as fleeing, but smaller squares pursue larger ones.
 def handle_chasing(squares):
     for square in squares:
         chase_x = 0
@@ -155,7 +154,6 @@ def handle_chasing(squares):
             if square is other:
                 continue
 
-            
             if square.size > other.size:
                 ox, oy = other.center()
 
@@ -166,16 +164,33 @@ def handle_chasing(squares):
                 if distance > 0:
                     strength = 1 / distance
                     toward_x, toward_y = normalize_vector(dx, dy)
+
                     chase_x += toward_x * strength
                     chase_y += toward_y * strength
 
         chase_length = vector_length(chase_x, chase_y)
+
         if chase_length > 0:
             chase_x, chase_y = normalize_vector(chase_x, chase_y)
 
-            # This assignment makes the chase behavior visible in the simulation.
             square.vx = chase_x * square.speed
             square.vy = chase_y * square.speed
+
+
+def create_mixed_squares():
+    squares = []
+
+    for _ in range(5):
+        squares.append(Square(25))
+
+    for _ in range(10):
+        squares.append(Square(10))
+
+    for _ in range(30):
+        squares.append(Square(4))
+
+    return squares
+
 
 def draw_fps(surface, clock, font):
     fps = clock.get_fps()
@@ -184,14 +199,13 @@ def draw_fps(surface, clock, font):
 
 
 def main():
-    squares = [Square() for _ in range(NUM_SQUARES)]
+    squares = create_mixed_squares()
     font = pygame.font.SysFont("Arial", 18)
 
     running = True
     last_direction_change = pygame.time.get_ticks()
 
     while running:
-        # Phase 1: limit the frame rate and read input events.
         delta_time = CLOCK.tick(FPS) / 1000.0
 
         for event in pygame.event.get():
@@ -200,23 +214,28 @@ def main():
 
         current_time = pygame.time.get_ticks()
 
-        # Phase 2: update behavior before moving anything on screen.
         if current_time - last_direction_change >= DIRECTION_CHANGE_INTERVAL:
             for square in squares:
                 square.set_random_direction()
+
             last_direction_change = current_time
 
         handle_chasing(squares)
         Square.handle_fleeing(squares)
 
-        # Phase 3: move squares, then replace expired ones.
         for square in squares:
             square.move(delta_time)
 
-        # Keep the same amount of squares by replacing expired ones.
-        squares = [square if not square.is_expired(current_time) else Square() for square in squares]
+        new_squares = []
 
-        # Phase 4: draw the current frame.
+        for square in squares:
+            if square.is_expired(current_time):
+                new_squares.append(Square(square.size))
+            else:
+                new_squares.append(square)
+
+        squares = new_squares
+
         SCREEN.fill(BACKGROUND_COLOR)
 
         for square in squares:
