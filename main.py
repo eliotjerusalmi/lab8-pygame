@@ -37,7 +37,6 @@ class Square:
             random.randint(50, 255),
         )
 
-        # Smaller squares move faster than bigger ones
         self.speed = max(60, 220 - self.size * 2)
 
         self.birth_time = pygame.time.get_ticks()
@@ -46,6 +45,14 @@ class Square:
         self.vx = 0
         self.vy = 0
         self.set_random_direction()
+
+    def get_rect(self):
+        return pygame.Rect(
+            int(self.x),
+            int(self.y),
+            self.size,
+            self.size
+        )
 
     def is_expired(self, current_time):
         return current_time - self.birth_time >= self.lifespan_ms
@@ -59,13 +66,13 @@ class Square:
         self.x += self.vx * delta_time
         self.y += self.vy * delta_time
 
-        
+        # Screen wrapping horizontal
         if self.x > WIDTH:
             self.x = -self.size
         elif self.x + self.size < 0:
             self.x = WIDTH
 
-        
+        # Screen wrapping vertical
         if self.y > HEIGHT:
             self.y = -self.size
         elif self.y + self.size < 0:
@@ -75,7 +82,7 @@ class Square:
         pygame.draw.rect(
             surface,
             self.color,
-            (int(self.x), int(self.y), self.size, self.size)
+            self.get_rect()
         )
 
     def center(self):
@@ -124,14 +131,20 @@ class Square:
                     square.vy = final_y * square.speed
 
 
+def check_collision(a: Square, b: Square) -> bool:
+    return a.get_rect().colliderect(b.get_rect())
+
+
 def vector_length(x, y):
     return math.hypot(x, y)
 
 
 def normalize_vector(x, y):
     length = vector_length(x, y)
+
     if length == 0:
         return 0, 0
+
     return x / length, y / length
 
 
@@ -207,6 +220,7 @@ def main():
         if current_time - last_direction_change >= DIRECTION_CHANGE_INTERVAL:
             for square in squares:
                 square.set_random_direction()
+
             last_direction_change = current_time
 
         handle_chasing(squares)
@@ -215,13 +229,22 @@ def main():
         for square in squares:
             square.move(delta_time)
 
+        # Collision detection
+        for i in range(len(squares)):
+            for j in range(i + 1, len(squares)):
+                if check_collision(squares[i], squares[j]):
+                    squares[i].color = (255, 0, 0)
+                    squares[j].color = (255, 0, 0)
+
         # Same size respawn
         new_squares = []
+
         for square in squares:
             if square.is_expired(current_time):
                 new_squares.append(Square(square.size))
             else:
                 new_squares.append(square)
+
         squares = new_squares
 
         SCREEN.fill(BACKGROUND_COLOR)
