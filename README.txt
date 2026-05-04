@@ -1,6 +1,6 @@
 # lab8-pygame
 
-Simple pygame application displaying 10 squares moving around the canvas.
+Simple pygame application displaying 20 squares moving around the canvas.
 
 ## Installation
 

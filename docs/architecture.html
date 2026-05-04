@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lab8-pygame Architecture</title>
+  <style>
+    :root {
+      --bg: #f7f7f3;
+      --panel: #ffffff;
+      --ink: #1e293b;
+      --muted: #4b5563;
+      --accent: #0f766e;
+      --border: #d6d3d1;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 10%, #e2f3f1 0%, transparent 28%),
+        radial-gradient(circle at 90% 25%, #f5e8d8 0%, transparent 30%),
+        var(--bg);
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 2rem;
+      letter-spacing: 0.2px;
+    }
+
+    .subtitle {
+      margin: 0 0 24px 0;
+      color: var(--muted);
+    }
+
+    section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin: 0 0 16px 0;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+    }
+
+    h2 {
+      margin-top: 0;
+      color: var(--accent);
+    }
+
+    p {
+      margin: 8px 0 0 0;
+      color: var(--muted);
+    }
+
+    .mermaid {
+      overflow-x: auto;
+    }
+
+    code {
+      background: #eef2f7;
+      padding: 1px 6px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>lab8-pygame Architecture</h1>
+    <p class="subtitle">Generated from the current source structure and runtime behavior in <code>main.py</code>.</p>
+
+    <section>
+      <h2>Module Dependency Graph</h2>
+      <div class="mermaid">
+flowchart LR
+    subgraph "Project"
+        M["main.py"]
+    end
+
+    subgraph "Standard Library"
+        R["random"]
+        T["math"]
+    end
+
+    subgraph "Third-Party Library"
+        P["pygame"]
+    end
+
+    M --> R
+    M --> T
+    M --> P
+      </div>
+      <p>Single-module project where <code>main.py</code> depends on <code>random</code>, <code>math</code>, and <code>pygame</code>.</p>
+    </section>
+
+    <section>
+      <h2>High-Level Runtime Flow</h2>
+      <div class="mermaid">
+flowchart TD
+    A["Import Module"] --> B["pygame.init()"]
+    B --> C["Create Window and Clock"]
+    C --> D["Define Constants, Class, and Functions"]
+    D --> E["Script Entry Check"]
+    E --> F["main()"]
+    F --> G["Create Squares and Font"]
+    G --> H["Start Main Loop"]
+
+    H --> I["Read Events"]
+    I --> J["Check QUIT Event"]
+    J --> K["Update Time and Direction Refresh"]
+    K --> L["Run Chase Computation"]
+    L --> M["Run Flee Computation"]
+    M --> N["Move Squares and Bounce on Borders"]
+    N --> O["Replace Expired Squares"]
+    O --> P["Render Background, Squares, and FPS"]
+    P --> Q["pygame.display.flip()"]
+    Q --> H
+
+    J --> R["Set running = False"]
+    R --> S["pygame.quit()"]
+      </div>
+      <p>Main loop updates simulation, draws the frame, and exits cleanly on QUIT.</p>
+    </section>
+
+    <section>
+      <h2>Function-Level Call Graph</h2>
+      <div class="mermaid">
+flowchart LR
+    subgraph "Top-Level Calls"
+        T0["Module Import Time"] --> T1["pygame.init()"]
+        T0 --> T2["pygame.display.set_mode()"]
+        T0 --> T3["pygame.display.set_caption()"]
+        T0 --> T4["pygame.time.Clock()"]
+        T0 --> T5["if __name__ == '__main__' -> main()"]
+    end
+
+    subgraph "Main Function"
+        M0["main()"] --> M1["Square.__init__() (x NUM_SQUARES)"]
+        M0 --> M2["pygame.font.SysFont()"]
+        M0 --> M3["CLOCK.tick()"]
+        M0 --> M4["pygame.event.get()"]
+        M0 --> M5["handle_chassing()"]
+        M0 --> M6["Square.handle_fleeing()"]
+        M0 --> M7["Square.move()"]
+        M0 --> M8["Square.is_expired()"]
+        M0 --> M9["Square.__init__() (replacement)"]
+        M0 --> M10["Square.draw()"]
+        M0 --> M11["draw_fps()"]
+        M0 --> M12["pygame.display.flip()"]
+        M0 --> M13["pygame.quit()"]
+    end
+
+    subgraph "Square Internals"
+        S0["Square.__init__()"] --> S1["pygame.time.get_ticks()"]
+        S0 --> S2["Square.set_random_direction()"]
+        S2 --> S3["math.cos() / math.sin()"]
+        S4["Square.handle_fleeing()"] --> S5["Square.center()"]
+        S4 --> S6["math.hypot()"]
+        S4 --> S7["random.uniform()"]
+        S8["Square.move()"] --> S9["Border Bounce Logic"]
+        S10["Square.draw()"] --> S11["pygame.draw.rect()"]
+    end
+
+    subgraph "Other Functions"
+        H0["handle_chassing()"] --> H1["Square.center()"]
+        H0 --> H2["math.hypot()"]
+        D0["draw_fps()"] --> D1["clock.get_fps()"]
+        D0 --> D2["font.render()"]
+        D0 --> D3["surface.blit()"]
+    end
+      </div>
+      <p><code>handle_chassing()</code> computes chase vectors but currently does not apply new velocity values.</p>
+    </section>
+
+    <section>
+      <h2>Primary Execution Sequence</h2>
+      <div class="mermaid">
+sequenceDiagram
+    participant Boot as "Python Runtime"
+    participant Mod as "main.py Module"
+    participant Main as "main()"
+    participant Pg as "pygame"
+    participant Sq as "Square Objects"
+
+    Boot->>Mod: "Import and Execute Top-Level Statements"
+    Mod->>Pg: "Initialize pygame and create window/clock"
+    Mod->>Main: "Call main() from script entry"
+
+    Main->>Sq: "Instantiate initial square list"
+    Main->>Pg: "Create font"
+
+    loop "Each Frame While running == True"
+        Main->>Pg: "CLOCK.tick(FPS) and poll events"
+        alt "QUIT Event Received"
+            Main->>Main: "Set running = False"
+        else "Continue Simulation"
+            Main->>Pg: "Read current ticks"
+            alt "Direction Interval Reached"
+                Main->>Sq: "Call set_random_direction() for each square"
+            else "No Refresh"
+                Main->>Main: "Keep current direction"
+            end
+
+            Main->>Sq: "Run handle_chassing(squares)"
+            Main->>Sq: "Run Square.handle_fleeing(squares)"
+            Main->>Sq: "Move each square with delta_time"
+            Main->>Sq: "Replace expired squares with new Square()"
+
+            Main->>Pg: "Fill screen and draw squares"
+            Main->>Pg: "Draw FPS text"
+            Main->>Pg: "Flip display"
+        end
+    end
+
+    Main->>Pg: "pygame.quit()"
+      </div>
+      <p>Sequence captures startup, per-frame loop behavior, key branches, and shutdown.</p>
+    </section>
+  </main>
+
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({ startOnLoad: true, securityLevel: "loose" });
+  </script>
+</body>
+</html>
