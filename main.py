@@ -7,7 +7,7 @@ pygame.init()
 # Window settings
 WIDTH, HEIGHT = 800, 600
 SCREEN = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Lab - Moving Squares (Eating++)")
+pygame.display.set_caption("Lab - Moving Squares (Trails)")
 
 CLOCK = pygame.time.Clock()
 FPS = 60
@@ -27,6 +27,9 @@ MAX_LIFESPAN_MS = 12000
 GROWTH_FACTOR = 0.4
 MAX_SIZE = 120
 
+# Trails settings
+TRAILS_LENGTH = 30
+
 
 class Square:
     def __init__(self, size):
@@ -42,6 +45,8 @@ class Square:
             random.randint(50, 255),
         )
 
+        self.trail = []
+
         self.update_speed()
 
         self.birth_time = pygame.time.get_ticks()
@@ -52,7 +57,6 @@ class Square:
         self.set_random_direction()
 
     def update_speed(self):
-        # Bigger squares become slower as they grow
         self.speed = max(40, 220 - self.size * 2)
 
     def grow(self, prey_size):
@@ -60,7 +64,6 @@ class Square:
         self.size = min(MAX_SIZE, self.size + growth_amount)
         self.update_speed()
 
-        # Keep current direction but update speed
         direction_x, direction_y = normalize_vector(self.vx, self.vy)
         if direction_x != 0 or direction_y != 0:
             self.vx = direction_x * self.speed
@@ -78,19 +81,47 @@ class Square:
         self.vy = math.sin(angle) * self.speed
 
     def move(self, delta_time):
+        old_center = self.center()
+
         self.x += self.vx * delta_time
         self.y += self.vy * delta_time
 
-        # Screen wrapping
+        wrapped = False
+
         if self.x > WIDTH:
             self.x = -self.size
+            wrapped = True
         elif self.x + self.size < 0:
             self.x = WIDTH
+            wrapped = True
 
         if self.y > HEIGHT:
             self.y = -self.size
+            wrapped = True
         elif self.y + self.size < 0:
             self.y = HEIGHT
+            wrapped = True
+
+        if wrapped:
+            self.trail.clear()
+        else:
+            self.trail.append(old_center)
+
+        if len(self.trail) > TRAILS_LENGTH:
+            self.trail.pop(0)
+
+    def draw_trail(self, surface):
+        if len(self.trail) < 2:
+            return
+
+        for i in range(1, len(self.trail)):
+            pygame.draw.line(
+                surface,
+                self.color,
+                self.trail[i - 1],
+                self.trail[i],
+                2
+            )
 
     def draw(self, surface):
         pygame.draw.rect(surface, self.color, self.get_rect())
@@ -274,6 +305,9 @@ def main():
         squares = updated
 
         SCREEN.fill(BACKGROUND_COLOR)
+
+        for square in squares:
+            square.draw_trail(SCREEN)
 
         for square in squares:
             square.draw(SCREEN)
