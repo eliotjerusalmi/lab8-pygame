@@ -7,7 +7,7 @@ pygame.init()
 # Window settings
 WIDTH, HEIGHT = 800, 600
 SCREEN = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Lab 8 - Moving Squares")
+pygame.display.set_caption("Lab - Moving Squares (Wrapping)")
 
 CLOCK = pygame.time.Clock()
 FPS = 60
@@ -59,19 +59,17 @@ class Square:
         self.x += self.vx * delta_time
         self.y += self.vy * delta_time
 
-        if self.x <= 0:
-            self.x = 0
-            self.vx *= -1
-        elif self.x + self.size >= WIDTH:
-            self.x = WIDTH - self.size
-            self.vx *= -1
+        
+        if self.x > WIDTH:
+            self.x = -self.size
+        elif self.x + self.size < 0:
+            self.x = WIDTH
 
-        if self.y <= 0:
-            self.y = 0
-            self.vy *= -1
-        elif self.y + self.size >= HEIGHT:
-            self.y = HEIGHT - self.size
-            self.vy *= -1
+        
+        if self.y > HEIGHT:
+            self.y = -self.size
+        elif self.y + self.size < 0:
+            self.y = HEIGHT
 
     def draw(self, surface):
         pygame.draw.rect(
@@ -109,9 +107,7 @@ class Square:
                         flee_x += away_x * strength
                         flee_y += away_y * strength
 
-            flee_length = vector_length(flee_x, flee_y)
-
-            if flee_length > 0:
+            if vector_length(flee_x, flee_y) > 0:
                 flee_x, flee_y = normalize_vector(flee_x, flee_y)
 
                 random_angle = random.uniform(0, 2 * math.pi)
@@ -121,9 +117,7 @@ class Square:
                 final_x = flee_x + rand_x * RANDOM_DIRECTION_STRENGTH
                 final_y = flee_y + rand_y * RANDOM_DIRECTION_STRENGTH
 
-                final_length = vector_length(final_x, final_y)
-
-                if final_length > 0:
+                if vector_length(final_x, final_y) > 0:
                     final_x, final_y = normalize_vector(final_x, final_y)
 
                     square.vx = final_x * square.speed
@@ -136,10 +130,8 @@ def vector_length(x, y):
 
 def normalize_vector(x, y):
     length = vector_length(x, y)
-
     if length == 0:
         return 0, 0
-
     return x / length, y / length
 
 
@@ -168,9 +160,7 @@ def handle_chasing(squares):
                     chase_x += toward_x * strength
                     chase_y += toward_y * strength
 
-        chase_length = vector_length(chase_x, chase_y)
-
-        if chase_length > 0:
+        if vector_length(chase_x, chase_y) > 0:
             chase_x, chase_y = normalize_vector(chase_x, chase_y)
 
             square.vx = chase_x * square.speed
@@ -217,7 +207,6 @@ def main():
         if current_time - last_direction_change >= DIRECTION_CHANGE_INTERVAL:
             for square in squares:
                 square.set_random_direction()
-
             last_direction_change = current_time
 
         handle_chasing(squares)
@@ -226,14 +215,13 @@ def main():
         for square in squares:
             square.move(delta_time)
 
+        # Same size respawn
         new_squares = []
-
         for square in squares:
             if square.is_expired(current_time):
                 new_squares.append(Square(square.size))
             else:
                 new_squares.append(square)
-
         squares = new_squares
 
         SCREEN.fill(BACKGROUND_COLOR)
